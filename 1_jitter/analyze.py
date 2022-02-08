@@ -5,6 +5,7 @@ import sys
 import struct
 import datetime
 import numpy as np
+import copy
 
 if (len(sys.argv) < 2):
     print("Too less arguments!")
@@ -16,7 +17,7 @@ data = json.loads(in_file.read())
 in_file.close()
 
 # Arrange plots
-fig, axs = plt.subplots(2,2)
+fig, axs = plt.subplots(2,3)
 
 # Print x-y diagram of absolute timestamps
 x = range(len(data))
@@ -67,37 +68,57 @@ for element in data:
     if len(ts2) > 1:
         y2.append(ts2[-1]-ts2[-2])
 
-axs[1][0].plot(x, y1, 'r')
-axs[1][0].set_title("Delta timestamps (Without packet losses)")
-axs[1][0].set_xlabel('msg')
-axs[1][0].set_ylabel('total timestamp', color='r')
-axs[1][0].tick_params('y', colors='r')
-axs[1][0].grid(True)
+axs[0][1].plot(x, y1, 'r')
+axs[0][1].set_title("Delta timestamps")
+axs[0][1].set_xlabel('msg')
+axs[0][1].set_ylabel('gateway delta timestamp [s]', color='r')
+axs[0][1].tick_params('y', colors='r')
+axs[0][1].grid(True)
 
-ax012 = axs[1][0].twinx()
+ax011 = axs[0][1].twinx()
 
-ax012.plot(x, y2, 'b')
-ax012.set_ylabel('mcu timestamp', color='b')
-ax012.tick_params('y', colors='b')
+ax011.plot(x, y2, 'b')
+ax011.set_ylabel('mcu delta timestamp [ms]', color='b')
+ax011.tick_params('y', colors='b')
+
+# Print delta timestamps without packet losses
+
+axs[1][1].plot(x, y1, 'r')
+axs[1][1].set_title("Delta timestamps (Without packet losses)")
+axs[1][1].set_xlabel('msg')
+axs[1][1].set_ylabel('gateway delta timestamp [s]', color='r')
+axs[1][1].tick_params('y', colors='r')
+axs[1][1].grid(True)
+axs[1][1].set_ylim([599.9, 600.1])
+
+ax011 = axs[1][1].twinx()
+ax011.plot(x, y2, 'b')
+ax011.set_ylabel('mcu delta timestamp [ms]', color='b')
+ax011.tick_params('y', colors='b')
+ax011.set_ylim([599975, 600025])
 
 # Print histogram
-# Get rid of packet loss
-
+# Get rid of packet loss and
+# normalize to first value received and pad to ms
 y1 = np.array(y1, float)
 y2 = np.array(y2, float)
+y1a = copy.deepcopy(y1)
+y2a = copy.deepcopy(y2)
+y1a = (y1a[ y1a < 1000]) * 1000 - 600*1000
+y2a = (y2a[ y2a < (1000*1000)]) - 600*1000
 
-# Normalize to first value received and pad to ms
-y1 = (y1[ y1 < 1000]-y1[0]) * 1000
-y2 = (y2[ y2 < (1000*1000)]) - (y2[0])
+axs[0][2].hist(y1a, bins=50)
+axs[0][2].set_title("Histogram gateway timestamps (Without packet losses)")
+axs[0][2].set_xlabel("ms")
 
-axs[0][1].hist(y1, bins=50)
-axs[0][1].set_title("Histogram gateway timestamps (Without packet losses)")
-axs[0][1].set_xlabel("ms")
-
-axs[1][1].hist(y2, bins=50)
-axs[1][1].set_title("Histogram mcu timestamps (Without packet losses)")
-axs[1][1].set_xlabel("ms")
-
-plt.show()
+axs[1][2].hist(y2a, bins=50)
+axs[1][2].set_title("Histogram mcu timestamps (Without packet losses)")
+axs[1][2].set_xlabel("ms")
 
 # Show error probability
+
+axs[1][0].text(0, 0, "Packets lost: {0} ({1}%)".format(len(np.where(y1>1000)[0]),(len(np.where(y1>1000)[0])/len(y1))*100))
+axs[1][0].text(0, 1, "Jitter: min: {0}, max: {1}, avg: {2}, mean: {3}".format(np.min(y1),np.max(y1),np.average(y1),np.mean(y1)))
+
+
+plt.show()
