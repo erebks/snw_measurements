@@ -47,6 +47,9 @@ ax002.plot(x, y2, 'b')
 ax002.set_ylabel('mcu timestamp', color='b')
 ax002.tick_params('y', colors='b')
 
+gateway_first_to_last = int((y1[-1].timestamp() - y1[0].timestamp())*1000)
+mcu_first_to_last = y2[-1]-y2[0]
+
 # Print x-y diagram of delta timestamps
 x = range(len(data)-1)
 ts1 = []
@@ -115,10 +118,12 @@ axs[1][2].hist(y2a, bins=50)
 axs[1][2].set_title("Histogram mcu timestamps (Without packet losses)")
 axs[1][2].set_xlabel("ms")
 
-# Show error probability
+# Show calculations
 
 axs[1][0].text(0, 0, "Packets lost: {0} ({1}%)".format(len(np.where(y1>1000)[0]),(len(np.where(y1>1000)[0])/len(y1))*100))
 axs[1][0].text(0, 1, "Jitter: min: {0}, max: {1}, avg: {2}, mean: {3}".format(np.min(y1),np.max(y1),np.average(y1),np.mean(y1)))
 
+# Show MCU time vs. gateway time deviation
+axs[1][0].text(0, 0.5, "Time duration (delta first to last message) gateway {0} ms, MCU {1} ms, diff {2} ms".format(gateway_first_to_last, mcu_first_to_last, abs(gateway_first_to_last-mcu_first_to_last)))
 
 plt.show()
