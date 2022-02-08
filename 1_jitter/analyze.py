@@ -15,6 +15,9 @@ in_file = open(sys.argv[1], "r")
 data = json.loads(in_file.read())
 in_file.close()
 
+# Arrange plots
+fig, axs = plt.subplots(2,2)
+
 # Print x-y diagram of absolute timestamps
 x = range(len(data))
 y1 = []
@@ -30,24 +33,18 @@ for element in data:
     a = int(struct.pack("<Q", a).hex(), 16) # Convert to little endian
     y2.append(int( a / 2**32)) # Pad to 32 bit
 
-ax1 = plt.gca()
+axs[0][0].plot(x, y1, 'r')
+axs[0][0].set_title("Absolute timestamps")
+axs[0][0].set_xlabel('msg')
+axs[0][0].set_ylabel('total timestamp', color='r')
+axs[0][0].tick_params('y', colors='r')
+axs[0][0].grid(True)
 
-plt.axis('normal')
+ax002 = axs[0][0].twinx()
 
-ax1.plot(x, y1, 'r')
-ax1.set_xlabel('msg')
-ax1.set_ylabel('total timestamp', color='r')
-ax1.tick_params('y', colors='r')
-ax1.grid(True)
-
-ax2 = ax1.twinx()
-
-ax2.plot(x, y2, 'b')
-ax2.set_ylabel('mcu timestamp', color='b')
-ax2.tick_params('y', colors='b')
-
-#plt.show()
-plt.clf()
+ax002.plot(x, y2, 'b')
+ax002.set_ylabel('mcu timestamp', color='b')
+ax002.tick_params('y', colors='b')
 
 # Print x-y diagram of delta timestamps
 x = range(len(data)-1)
@@ -70,29 +67,21 @@ for element in data:
     if len(ts2) > 1:
         y2.append(ts2[-1]-ts2[-2])
 
-ax1 = plt.gca()
+axs[1][0].plot(x, y1, 'r')
+axs[1][0].set_title("Delta timestamps (Without packet losses)")
+axs[1][0].set_xlabel('msg')
+axs[1][0].set_ylabel('total timestamp', color='r')
+axs[1][0].tick_params('y', colors='r')
+axs[1][0].grid(True)
 
-plt.axis('normal')
+ax012 = axs[1][0].twinx()
 
-ax1.plot(x, y1, 'r')
-ax1.set_xlabel('msg')
-ax1.set_ylabel('total timestamp', color='r')
-ax1.tick_params('y', colors='r')
-ax1.grid(True)
-
-ax2 = ax1.twinx()
-
-ax2.plot(x, y2, 'b')
-ax2.set_ylabel('mcu timestamp', color='b')
-ax2.tick_params('y', colors='b')
-
-#plt.show()
-plt.clf()
+ax012.plot(x, y2, 'b')
+ax012.set_ylabel('mcu timestamp', color='b')
+ax012.tick_params('y', colors='b')
 
 # Print histogram
 # Get rid of packet loss
-
-print(y2)
 
 y1 = np.array(y1, float)
 y2 = np.array(y2, float)
@@ -101,15 +90,14 @@ y2 = np.array(y2, float)
 y1 = (y1[ y1 < 1000]-y1[0]) * 1000
 y2 = (y2[ y2 < (1000*1000)]) - (y2[0])
 
-fig, axs = plt.subplots(1, 2, sharey=False, tight_layout=True)
+axs[0][1].hist(y1, bins=50)
+axs[0][1].set_title("Histogram gateway timestamps (Without packet losses)")
+axs[0][1].set_xlabel("ms")
 
-axs[0].hist(y1, bins=50)
-axs[0].set_xlabel("ms")
-
-axs[1].hist(y2, bins=50)
-axs[1].set_xlabel("ms")
+axs[1][1].hist(y2, bins=50)
+axs[1][1].set_title("Histogram mcu timestamps (Without packet losses)")
+axs[1][1].set_xlabel("ms")
 
 plt.show()
-plt.clf()
 
 # Show error probability
