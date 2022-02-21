@@ -42,6 +42,8 @@ for element in data:
         "lora_msg_id": None,
         "gw_timestamp": None,
         "gw_timestamp_delta": None,
+        "nw_timestamp": None,
+        "nw_timestamp_delta": None,
         "mcu_timestamp": None,
         "mcu_timestamp_s": None,
         "mcu_timestamp_delta": None,
@@ -59,6 +61,11 @@ for element in data:
     a = datetime.datetime.strptime(a, "%Y-%m-%dT%H:%M:%S.%f")
 
     msg["gw_timestamp"] = a.timestamp()
+
+    a = element["result"]["received_at"]
+    a = a[:-4]
+    a = datetime.datetime.strptime(a, "%Y-%m-%dT%H:%M:%S.%f")
+    msg["nw_timestamp"] = a.timestamp()
 
     a = element["result"]["uplink_message"]["frm_payload"]
     a = int(base64.b64decode(a).hex(),16) # Convert base64 to hexstring
@@ -78,6 +85,7 @@ for element in data:
         elif (preMsg["previous_lost"] == True):
             # Calc time deltas
             msg["gw_timestamp_delta"] = msg["gw_timestamp"] - preMsg["gw_timestamp"]
+            msg["nw_timestamp_delta"] = msg["nw_timestamp"] - preMsg["nw_timestamp"]
             msg["mcu_timestamp_delta"] = msg["mcu_timestamp"] - preMsg["mcu_timestamp"]
             msg["mcu_timestamp_delta_s"] = msg["mcu_timestamp_delta"] / 1000
 
@@ -90,6 +98,7 @@ for element in data:
         else:
             # Calc time deltas
             msg["gw_timestamp_delta"] = msg["gw_timestamp"] - preMsg["gw_timestamp"]
+            msg["nw_timestamp_delta"] = msg["nw_timestamp"] - preMsg["nw_timestamp"]
             msg["mcu_timestamp_delta"] = msg["mcu_timestamp"] - preMsg["mcu_timestamp"]
             msg["mcu_timestamp_delta_s"] = msg["mcu_timestamp_delta"] / 1000
 
@@ -108,7 +117,7 @@ for element in data:
     msgs.append(msg)
 
 # Arrange plots
-fig, axs = plt.subplots(2,3)
+fig, axs = plt.subplots(4,4)
 
 # Print x-y diagram of absolute timestamps
 axs[0][0].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp"] for ele in msgs), "r.-")
@@ -123,6 +132,12 @@ ax002 = axs[0][0].twinx()
 ax002.plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_s"] for ele in msgs), "b.-")
 ax002.set_ylabel('mcu timestamp [s]', color='b')
 ax002.tick_params('y', colors='b')
+
+#ax003 = axs[0][0].twinx()
+
+#ax003.plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp"] for ele in msgs), "g.-")
+#ax003.set_ylabel('network timestamp [s]', color='g')
+#ax003.tick_params('y', colors='g')
 
 # Print x-y diagram of delta timestamps
 
@@ -139,32 +154,105 @@ ax011.plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_del
 ax011.set_ylabel('mcu delta timestamp [s]', color='b')
 ax011.tick_params('y', colors='b')
 
+#ax012 = axs[0][1].twinx()
+
+#ax012.plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["nw_timestamp_delta"] for ele in msgs), "g.-")
+#ax012.set_ylabel('network delta timestamp [s]', color='g')
+#ax012.tick_params('y', colors='g')
+
+
 # Print histogram
 # Get rid of packet loss and
 # normalize to first value received and pad to ms
-y1 = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
-y2 = np.array(list(ele["mcu_timestamp_delta"] for ele in msgs), float)
-y1 = ((y1) - 600) * 1000
-y2 = ((y2) - 600 * 1000)
+y1 = np.array(list(ele["mcu_timestamp_delta"] for ele in msgs), float)
+y2 = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+y3 = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
 
-axs[0][2].hist(y1, bins=50, color='r')
-axs[0][2].set_title("Histogram gateway timestamps")
-axs[0][2].set_xlabel("ms")
+y1 = ((y1) - 600 * 1000)
+y2 = ((y2) - 600) * 1000
+y3 = ((y3) - 600) * 1000
 
-axs[1][2].hist(y2, bins=50, color='b')
-axs[1][2].set_title("Histogram mcu timestamps")
-axs[1][2].set_xlabel("ms")
+axs[1][0].hist(y1, bins=50, color='b')
+axs[1][0].set_title("Histogram mcu timestamps")
+axs[1][0].set_xlabel("ms")
+
+axs[2][0].hist(y2, bins=50, color='r')
+axs[2][0].set_title("Histogram gateway timestamps")
+axs[2][0].set_xlabel("ms")
+
+axs[3][0].hist(y3, bins=50, color='g')
+axs[3][0].set_title("Histogram network timestamps")
+axs[3][0].set_xlabel("ms")
+
+# Print detailed histogram
+# Only TS at -10s
+gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+gw_ts = (gw_ts - 600) * 1000
+gw_ts = gw_ts[gw_ts < -50000]
+
+axs[2][1].hist(gw_ts, bins=50, color='r')
+axs[2][1].set_title("Histogram GW timestamps (@ -60000ms)")
+axs[2][1].set_xlabel("ms")
+
+# Only TS at 0s
+gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+gw_ts = (gw_ts - 600) * 1000
+gw_ts = gw_ts[gw_ts < 5000]
+gw_ts = gw_ts[gw_ts > -5000]
+
+axs[2][2].hist(gw_ts, bins=50, color='r')
+axs[2][2].set_title("Histogram GW timestamps (@ 0ms)")
+axs[2][2].set_xlabel("ms")
+
+# Only TS at 1s
+gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+gw_ts = (gw_ts - 600) * 1000
+gw_ts = gw_ts[gw_ts < 11000]
+gw_ts = gw_ts[gw_ts > 5000]
+
+axs[2][3].hist(gw_ts, bins=50, color='r')
+axs[2][3].set_title("Histogram GW timestamps (@ 10000ms)")
+axs[2][3].set_xlabel("ms")
+
+# Print detailed histogram
+# Only TS at -10s
+nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
+nw_ts = (nw_ts - 600) * 1000
+nw_ts = nw_ts[nw_ts < -50000]
+
+axs[3][1].hist(nw_ts, bins=50, color='g')
+axs[3][1].set_title("Histogram NW timestamps (@ -60000ms)")
+axs[3][1].set_xlabel("ms")
+
+# Only TS at 0s
+nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
+nw_ts = (nw_ts - 600) * 1000
+nw_ts = nw_ts[nw_ts < 5000]
+nw_ts = nw_ts[nw_ts > -5000]
+
+axs[3][2].hist(nw_ts, bins=50, color='g')
+axs[3][2].set_title("Histogram NW timestamps (@ 0ms)")
+axs[3][2].set_xlabel("ms")
+
+# Only TS at 1s
+nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
+nw_ts = (nw_ts - 600) * 1000
+nw_ts = nw_ts[nw_ts < 11000]
+nw_ts = nw_ts[nw_ts > 5000]
+
+axs[3][3].hist(nw_ts, bins=50, color='g')
+axs[3][3].set_title("Histogram NW timestamps (@ 10000ms)")
+axs[3][3].set_xlabel("ms")
 
 # Show calculations
+y1 = []
+for ele in msgs:
+    if not (ele["gw_timestamp_delta"] == None):
+        y1.append(ele["gw_timestamp_delta"]*1000)
 
-axs[1][0].text(0, 0, "Packets lost: {0} (of {1} = {2:.2f}%)".format(numMsgsLost, len(msgs), (numMsgsLost/len(msgs))*100))
-axs[1][0].text(0, 1, "Jitter: min: {0:.2f}, max: {1:.2f}, avg: {2:.2f}, mean: {3:.2f}".format(np.min(y1),np.max(y1),np.average(y1),np.mean(y1)))
+y1 = np.array(y1)
 
-# Show MCU time vs. gateway time deviation
-gateway_first_to_last = msgs[-1]["gw_timestamp"] - msgs[0]["gw_timestamp"]
-mcu_first_to_last = msgs[-1]["mcu_timestamp_s"] - msgs[0]["mcu_timestamp_s"]
-
-axs[1][0].text(0, 0.5, "Time duration (delta first to last message) gateway {0:.2f} s, MCU {1:.2f} s, diff {2:.2f} s".format(gateway_first_to_last, mcu_first_to_last, abs(gateway_first_to_last-mcu_first_to_last)))
-
+print("Packets lost: {0} (of {1} = {2:.2f}%)".format(numMsgsLost, len(msgs), (numMsgsLost/len(msgs))*100))
+print("Jitter: min: {0:.2f} ms, max: {1:.2f} ms, avg: {2:.2f} ms, mean: {3:.2f} ms".format(np.min(y1),np.max(y1),np.average(y1),np.mean(y1)))
 
 plt.show()
