@@ -7,7 +7,13 @@ if (len(sys.argv) < 3):
     exit(1)
 
 in_file = open(sys.argv[1], "r")
-out_file = open(sys.argv[2], "r")
+
+try:
+    out_file = open(sys.argv[2], "r")
+    o_json = json.loads(out_file.read())
+    out_file.close()
+except OSError as e:
+    o_json = []
 
 # Read all json nodes in out_file
 
@@ -27,10 +33,8 @@ def readjson(f):
     return j
 
 i_json = readjson(in_file)
-o_json = json.loads(out_file.read())
 
 in_file.close()
-out_file.close()
 
 # Extract only "received_at" timestamps of both
 ij_timestamps = []
@@ -54,8 +58,6 @@ for ij_ts in ij_timestamps:
         o_json.append(ij_found)
     else:
         print("Ignoring: {0}".format(ij_ts))
-
-print("Outjson: {0}".format(o_json))
 
 out_file = open(sys.argv[2], "w")
 out_file.write(json.dumps(o_json))
