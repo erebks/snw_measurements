@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 PRINT_MATCHES = False
 NOMINAL_S = 300
-TOLERANCE_S = 0.05
+TOLERANCE_S = 0.025
 HIST_BINS = 200
 
 if (len(sys.argv) < 2):
@@ -31,7 +31,7 @@ numMsgsLost, msgs = helper.readMessages(data, NOMINAL_S, TOLERANCE_S, PRINT_MATC
 
 # Arrange plots
 fig, axs = plt.subplots(4,3)
-fig.suptitle("DPSK 100ms")
+fig.suptitle("DPSK 50ms")
 
 # Print x-y diagram of absolute timestamps
 axs[0][0].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp"] for ele in msgs), "r.-")
