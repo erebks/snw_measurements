@@ -1,129 +1,127 @@
 import json
 import matplotlib.pyplot as plt
-import base64
 import sys
-import struct
-import datetime
 import numpy as np
 import copy
 
-if (len(sys.argv) < 2):
-    print("Too less arguments!")
-    print("Use: python3 {0} in_file.json".format(sys.argv[0]))
-    exit(1)
+sys.path.append('../')
 
-in_file = open(sys.argv[1], "r")
-data = json.loads(in_file.read())
-in_file.close()
+# importing
+import helper
 
-# Arrange plots
-fig, axs = plt.subplots(2,3)
+# Ignore NONE in list
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-# Print x-y diagram of absolute timestamps
-x = range(len(data))
-y1 = []
-y2 = []
-for element in data:
-    a = element["result"]["uplink_message"]["rx_metadata"][0]["time"]
-    a = a[:-4]
-    a = datetime.datetime.strptime(a, "%Y-%m-%dT%H:%M:%S.%f")
-    y1.append(a)
-    # Convert to timestamp
-    a = element["result"]["uplink_message"]["frm_payload"]
-    a = int(base64.b64decode(a).hex(),16) # Convert base64 to hexstring
-    a = int(struct.pack("<Q", a).hex(), 16) # Convert to little endian
-    y2.append(int( a / 2**32)) # Pad to 32 bit
+FILE = "out.json"
+PRINT_MATCHES = False
+NOMINAL_S = 600
+TOLERANCE_S = 1
+HIST_BINS = 200
+SUBPLOT_SIZE = [4,3]
+SUPTITLE = "Jitter"
 
-axs[0][0].plot(x, y1, 'r')
-axs[0][0].set_title("Absolute timestamps")
-axs[0][0].set_xlabel('msg')
-axs[0][0].set_ylabel('total timestamp', color='r')
-axs[0][0].tick_params('y', colors='r')
-axs[0][0].grid(True)
+def readMeasurements():
+    in_file = open(FILE, "r")
+    data = json.loads(in_file.read())
+    in_file.close()
+    return data
 
-ax002 = axs[0][0].twinx()
+def analyze(measurements):
+    #numMsgsLost, msgs = helper.readMessages(measurements, NOMINAL_S, TOLERANCE_S, PRINT_MATCHES)
+    return helper.readMessages(measurements, NOMINAL_S, TOLERANCE_S, PRINT_MATCHES)
 
-ax002.plot(x, y2, 'b')
-ax002.set_ylabel('mcu timestamp', color='b')
-ax002.tick_params('y', colors='b')
+def plot():
 
-gateway_first_to_last = int((y1[-1].timestamp() - y1[0].timestamp())*1000)
-mcu_first_to_last = y2[-1]-y2[0]
+    res = analyze(readMeasurements())
 
-# Print x-y diagram of delta timestamps
-x = range(len(data)-1)
-ts1 = []
-y1 = []
-ts2 = []
-y2 = []
-for element in data:
-    a = element["result"]["uplink_message"]["rx_metadata"][0]["time"]
-    a = a[:-4] # Strip timestamp a bit
-    a = float(datetime.datetime.strptime(a, "%Y-%m-%dT%H:%M:%S.%f").timestamp())
-    ts1.append(a)
-    if len(ts1) > 1:
-        y1.append(ts1[-1]-ts1[-2])
-    # Convert to timestamp
-    a = element["result"]["uplink_message"]["frm_payload"]
-    a = int(base64.b64decode(a).hex(),16) # Convert base64 to hexstring
-    a = int(struct.pack("<Q", a).hex(), 16) # Convert to little endian
-    ts2.append(int( a / 2**32))
-    if len(ts2) > 1:
-        y2.append(ts2[-1]-ts2[-2])
+    msgs = res["msgs"]
+    numMsgsLost = res["numMsgsLost"]
+    numPhasesDecoded = res["numPhasesDecoded"]
+    numPhasesErrors = res["numPhasesErrors"]
 
-axs[0][1].plot(x, y1, 'r')
-axs[0][1].set_title("Delta timestamps")
-axs[0][1].set_xlabel('msg')
-axs[0][1].set_ylabel('gateway delta timestamp [s]', color='r')
-axs[0][1].tick_params('y', colors='r')
-axs[0][1].grid(True)
+    # Arrange plots
+    fig, axs = plt.subplots(SUBPLOT_SIZE[0],SUBPLOT_SIZE[1])
+    fig.suptitle(SUPTITLE)
 
-ax011 = axs[0][1].twinx()
+    # Print x-y diagram of absolute timestamps
+    axs[0][0].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp"] for ele in msgs), "r.-")
+    axs[0][0].set_title("Absolute timestamps")
+    axs[0][0].set_xlabel('msg')
+    axs[0][0].set_ylabel('gateway timestamp [s]', color='r')
+    axs[0][0].tick_params('y', colors='r')
+    axs[0][0].grid(True)
 
-ax011.plot(x, y2, 'b')
-ax011.set_ylabel('mcu delta timestamp [ms]', color='b')
-ax011.tick_params('y', colors='b')
+    ax002 = axs[0][0].twinx()
 
-# Print delta timestamps without packet losses
+    ax002.plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_s"] for ele in msgs), "b.-")
+    ax002.set_ylabel('mcu timestamp [s]', color='b')
+    ax002.tick_params('y', colors='b')
 
-axs[1][1].plot(x, y1, 'r')
-axs[1][1].set_title("Delta timestamps (Without packet losses)")
-axs[1][1].set_xlabel('msg')
-axs[1][1].set_ylabel('gateway delta timestamp [s]', color='r')
-axs[1][1].tick_params('y', colors='r')
-axs[1][1].grid(True)
-axs[1][1].set_ylim([599.9, 600.1])
+    # Print x-y diagram of delta timestamps
 
-ax011 = axs[1][1].twinx()
-ax011.plot(x, y2, 'b')
-ax011.set_ylabel('mcu delta timestamp [ms]', color='b')
-ax011.tick_params('y', colors='b')
-ax011.set_ylim([599975, 600025])
+    axs[0][1].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp_delta"] for ele in msgs), "r.-")
+    axs[0][1].set_title("Delta timestamps")
+    axs[0][1].set_xlabel('msg')
+    axs[0][1].set_ylabel('gateway delta timestamp [s]', color='r')
+    axs[0][1].tick_params('y', colors='r')
+    axs[0][1].grid(True)
 
-# Print histogram
-# Get rid of packet loss and
-# normalize to first value received and pad to ms
-y1 = np.array(y1, float)
-y2 = np.array(y2, float)
-y1a = copy.deepcopy(y1)
-y2a = copy.deepcopy(y2)
-y1a = (y1a[ y1a < 1000]) * 1000 - 600*1000
-y2a = (y2a[ y2a < (1000*1000)]) - 600*1000
+    axs[0][2].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_delta"] for ele in msgs), "b.-")
+    axs[0][2].set_title("Delta timestamps")
+    axs[0][2].set_xlabel('msg')
+    axs[0][2].set_ylabel('mcu delta timestamp [s]', color='b')
+    axs[0][2].tick_params('y', colors='b')
+    axs[0][2].grid(True)
 
-axs[0][2].hist(y1a, bins=50)
-axs[0][2].set_title("Histogram gateway timestamps (Without packet losses)")
-axs[0][2].set_xlabel("ms")
+    # Print histogram
+    # Get rid of packet loss and
+    # normalize to first value received and pad to ms
+    y1 = np.array(list(ele["mcu_timestamp_delta"] for ele in msgs), float)
+    y2 = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+    y3 = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
 
-axs[1][2].hist(y2a, bins=50)
-axs[1][2].set_title("Histogram mcu timestamps (Without packet losses)")
-axs[1][2].set_xlabel("ms")
+    y1 = ((y1) - NOMINAL_S * 1000)
+    y2 = ((y2) - NOMINAL_S) * 1000
+    y3 = ((y3) - NOMINAL_S) * 1000
 
-# Show calculations
+    axs[1][0].hist(y1, bins=HIST_BINS, color='b')
+    axs[1][0].set_title("Histogram mcu timestamps")
+    axs[1][0].set_xlabel("ms")
 
-axs[1][0].text(0, 0, "Packets lost: {0} ({1}%)".format(len(np.where(y1>1000)[0]),(len(np.where(y1>1000)[0])/len(y1))*100))
-axs[1][0].text(0, 1, "Jitter: min: {0}, max: {1}, avg: {2}, mean: {3}".format(np.min(y1),np.max(y1),np.average(y1),np.mean(y1)))
+    axs[2][0].hist(y2, bins=HIST_BINS, color='r')
+    axs[2][0].set_title("Histogram gateway timestamps")
+    axs[2][0].set_xlabel("ms")
 
-# Show MCU time vs. gateway time deviation
-axs[1][0].text(0, 0.5, "Time duration (delta first to last message) gateway {0} ms, MCU {1} ms, diff {2} ms".format(gateway_first_to_last, mcu_first_to_last, abs(gateway_first_to_last-mcu_first_to_last)))
+    axs[3][0].hist(y3, bins=HIST_BINS, color='g')
+    axs[3][0].set_title("Histogram network timestamps")
+    axs[3][0].set_xlabel("ms")
 
-plt.show()
+    # Show calculations
+    y1 = []
+    for ele in msgs:
+        if not (ele["gw_timestamp_delta"] == None):
+            y1.append(ele["gw_timestamp_delta"]*1000)
+
+    y1 = np.array(y1)
+
+    print("Packetloss: \n\t{0} (of {1} = {2:.2f}%)".format(numMsgsLost, len(msgs), (numMsgsLost/len(msgs))*100))
+
+    print("Jitter:")
+    print("\tmin:  {0:.2f} ms".format(np.min(y1)))
+    print("\tmax:  {0:.2f} ms".format(np.max(y1)))
+    print("\tavg:  {0:.2f} ms".format(np.average(y1)))
+    print("\tmean: {0:.2f} ms".format(np.mean(y1)))
+
+    duration_gw = msgs[-1]["gw_timestamp"] - msgs[0]["gw_timestamp"]
+    duration_mcu = msgs[-1]["mcu_timestamp_s"] - msgs[0]["mcu_timestamp_s"]
+    deviation = abs(duration_gw-duration_mcu)
+    print("Clock deviation:")
+    print("\tDuration GW:  {0:.2f} s".format(duration_gw))
+    print("\tDuration MCU: {0:.2f} s".format(duration_mcu))
+    print("\tDeviation:    {0:.2f} ms ({1:.2f} ppm)".format(deviation*1000, (deviation/duration_gw)*1000000))
+
+    plt.show()
+
+if __name__ == "__main__":
+    plot()

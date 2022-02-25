@@ -23,6 +23,10 @@ def readMessages(data, nominal, tolerance, printMatches):
 
     msgs = []
     numMsgsLost = 0
+    phases = {
+        "decoded": 0,
+        "errors": 0
+        }
 
     # Go through messages and extract info
     for element in data:
@@ -39,6 +43,7 @@ def readMessages(data, nominal, tolerance, printMatches):
             "mcu_timestamp_delta_s": None,
             "calculation": {"watermark": None, "phase": None},
             "extraction": {"phase": None},
+            "phase_correct": None,
         }
 
         msg["lora_msg_id"] = element["result"]["uplink_message"]["f_cnt"]
@@ -107,7 +112,11 @@ def readMessages(data, nominal, tolerance, printMatches):
                 msg["calculation"]["phase"] = calcPhase(preMsg["extraction"]["phase"], msg["calculation"]["watermark"])
                 msg["extraction"]["phase"] = getPhase(msg["gw_timestamp_delta"], nominal, tolerance)
 
+                phases["decoded"] += 1
+
                 if not (msg["calculation"]["phase"] == msg["extraction"]["phase"]):
+                    msg["phase_correct"] = False
+                    phases["errors"] += 1
                     print("ID: {0}".format(msg["lora_msg_id"]))
                     print("\tGW  TS: {0:.3f} s (pre: {1:.3f} s), delta: {2:.3f} ms".format(msg["gw_timestamp"], preMsg["gw_timestamp"], msg["gw_timestamp_delta"]*1000))
                     print("\tMCU TS: {0:.3f} s (pre: {1:.3f} s), delta: {2:.3f} ms".format(msg["mcu_timestamp"]/1000, preMsg["mcu_timestamp"]/1000, msg["mcu_timestamp_delta"]))
@@ -115,6 +124,7 @@ def readMessages(data, nominal, tolerance, printMatches):
                     print("\tExtracted Phase: {0}".format(msg["extraction"]["phase"]))
                     print("\tCalculated and Extracted phases do not match")
                 else:
+                    msg["phase_correct"] = True
                     if (printMatches == True):
                         print("ID: {0}".format(msg["lora_msg_id"]))
                         print("\tGW  TS: {0:.3f} s (pre: {1:.3f} s), delta: {2:.3f} ms".format(msg["gw_timestamp"], preMsg["gw_timestamp"], msg["gw_timestamp_delta"]*1000))
@@ -134,4 +144,4 @@ def readMessages(data, nominal, tolerance, printMatches):
 
         msgs.append(msg)
 
-    return (numMsgsLost, msgs)
+    return {"msgs": msgs, "numMsgsLost": numMsgsLost, "numPhasesDecoded": phases["decoded"], "numPhasesErrors": phases["errors"]}

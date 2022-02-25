@@ -13,151 +13,174 @@ import helper
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
+FILE = "220209_xor_dpsk.json"
 PRINT_MATCHES = False
 NOMINAL_S = 600
 TOLERANCE_S = 0.05
 HIST_BINS = 200
+SUBPLOT_SIZE = [4,4]
+SUPTITLE = "DPSK 10 s"
 
-if (len(sys.argv) < 2):
-    print("Too less arguments!")
-    print("Use: python3 {0} in_file.json".format(sys.argv[0]))
-    exit(1)
+def readMeasurements():
+    in_file = open(FILE, "r")
+    data = json.loads(in_file.read())
+    in_file.close()
+    return data
 
-in_file = open(sys.argv[1], "r")
-data = json.loads(in_file.read())
-in_file.close()
+def analyze(measurements):
+    return helper.readMessages(measurements, NOMINAL_S, TOLERANCE_S, PRINT_MATCHES)
 
-numMsgsLost, msgs = helper.readMessages(data, NOMINAL_S, TOLERANCE_S, PRINT_MATCHES)
+def plot():
 
-# Arrange plots
-fig, axs = plt.subplots(4,4)
-fig.suptitle("DPSK 10s")
+    res = analyze(readMeasurements())
 
-# Print x-y diagram of absolute timestamps
-axs[0][0].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp"] for ele in msgs), "r.-")
-axs[0][0].set_title("Absolute timestamps")
-axs[0][0].set_xlabel('msg')
-axs[0][0].set_ylabel('gateway timestamp [s]', color='r')
-axs[0][0].tick_params('y', colors='r')
-axs[0][0].grid(True)
+    msgs = res["msgs"]
+    numMsgsLost = res["numMsgsLost"]
+    numPhasesDecoded = res["numPhasesDecoded"]
+    numPhasesErrors = res["numPhasesErrors"]
 
-ax002 = axs[0][0].twinx()
+    # Arrange plots
+    fig, axs = plt.subplots(SUBPLOT_SIZE[0],SUBPLOT_SIZE[1])
+    fig.suptitle(SUPTITLE)
 
-ax002.plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_s"] for ele in msgs), "b.-")
-ax002.set_ylabel('mcu timestamp [s]', color='b')
-ax002.tick_params('y', colors='b')
+    # Print x-y diagram of absolute timestamps
+    axs[0][0].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp"] for ele in msgs), "r.-")
+    axs[0][0].set_title("Absolute timestamps")
+    axs[0][0].set_xlabel('msg')
+    axs[0][0].set_ylabel('gateway timestamp [s]', color='r')
+    axs[0][0].tick_params('y', colors='r')
+    axs[0][0].grid(True)
 
-# Print x-y diagram of delta timestamps
+    ax002 = axs[0][0].twinx()
 
-axs[0][1].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp_delta"] for ele in msgs), "r.-")
-axs[0][1].set_title("Delta timestamps")
-axs[0][1].set_xlabel('msg')
-axs[0][1].set_ylabel('gateway delta timestamp [s]', color='r')
-axs[0][1].tick_params('y', colors='r')
-axs[0][1].grid(True)
+    ax002.plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_s"] for ele in msgs), "b.-")
+    ax002.set_ylabel('mcu timestamp [s]', color='b')
+    ax002.tick_params('y', colors='b')
 
-axs[0][2].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_delta"] for ele in msgs), "b.-")
-axs[0][2].set_title("Delta timestamps")
-axs[0][2].set_xlabel('msg')
-axs[0][2].set_ylabel('mcu delta timestamp [s]', color='b')
-axs[0][2].tick_params('y', colors='b')
-axs[0][2].grid(True)
+    # Print x-y diagram of delta timestamps
 
-# Print histogram
-# Get rid of packet loss and
-# normalize to first value received and pad to ms
-y1 = np.array(list(ele["mcu_timestamp_delta"] for ele in msgs), float)
-y2 = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
-y3 = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
+    axs[0][1].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["gw_timestamp_delta"] for ele in msgs), "r.-")
+    axs[0][1].set_title("Delta timestamps")
+    axs[0][1].set_xlabel('msg')
+    axs[0][1].set_ylabel('gateway delta timestamp [s]', color='r')
+    axs[0][1].tick_params('y', colors='r')
+    axs[0][1].grid(True)
 
-y1 = ((y1) - NOMINAL_S * 1000)
-y2 = ((y2) - NOMINAL_S) * 1000
-y3 = ((y3) - NOMINAL_S) * 1000
+    axs[0][2].plot(list(ele["lora_msg_id"] for ele in msgs), list(ele["mcu_timestamp_delta"] for ele in msgs), "b.-")
+    axs[0][2].set_title("Delta timestamps")
+    axs[0][2].set_xlabel('msg')
+    axs[0][2].set_ylabel('mcu delta timestamp [s]', color='b')
+    axs[0][2].tick_params('y', colors='b')
+    axs[0][2].grid(True)
 
-axs[1][0].hist(y1, bins=HIST_BINS, color='b')
-axs[1][0].set_title("Histogram mcu timestamps")
-axs[1][0].set_xlabel("ms")
+    # Print histogram
+    # Get rid of packet loss and
+    # normalize to first value received and pad to ms
+    y1 = np.array(list(ele["mcu_timestamp_delta"] for ele in msgs), float)
+    y2 = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+    y3 = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
 
-axs[2][0].hist(y2, bins=HIST_BINS, color='r')
-axs[2][0].set_title("Histogram gateway timestamps")
-axs[2][0].set_xlabel("ms")
+    y1 = ((y1) - NOMINAL_S * 1000)
+    y2 = ((y2) - NOMINAL_S) * 1000
+    y3 = ((y3) - NOMINAL_S) * 1000
 
-axs[3][0].hist(y3, bins=HIST_BINS, color='g')
-axs[3][0].set_title("Histogram network timestamps")
-axs[3][0].set_xlabel("ms")
+    axs[1][0].hist(y1, bins=HIST_BINS, color='b')
+    axs[1][0].set_title("Histogram mcu timestamps")
+    axs[1][0].set_xlabel("ms")
 
-# Print detailed histogram
-# THIS NEEDS TO BE ADJUSTED FOR EVERY PLOT
+    axs[2][0].hist(y2, bins=HIST_BINS, color='r')
+    axs[2][0].set_title("Histogram gateway timestamps")
+    axs[2][0].set_xlabel("ms")
 
-# Only TS at -10s
-gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
-gw_ts = (gw_ts - NOMINAL_S) * 1000
-gw_ts = gw_ts[gw_ts < -50000]
+    axs[3][0].hist(y3, bins=HIST_BINS, color='g')
+    axs[3][0].set_title("Histogram network timestamps")
+    axs[3][0].set_xlabel("ms")
 
-axs[2][1].hist(gw_ts, bins=HIST_BINS, color='r')
-axs[2][1].set_title("Histogram GW timestamps (@ -60000ms)")
-axs[2][1].set_xlabel("ms")
+    # Print detailed histogram
+    # THIS NEEDS TO BE ADJUSTED FOR EVERY PLOT
 
-# Only TS at 0s
-gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
-gw_ts = (gw_ts - NOMINAL_S) * 1000
-gw_ts = gw_ts[gw_ts < 5000]
-gw_ts = gw_ts[gw_ts > -5000]
+    # Only TS at -10s
+    gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+    gw_ts = (gw_ts - NOMINAL_S) * 1000
+    gw_ts = gw_ts[gw_ts < -50000]
 
-axs[2][2].hist(gw_ts, bins=HIST_BINS, color='r')
-axs[2][2].set_title("Histogram GW timestamps (@ 0ms)")
-axs[2][2].set_xlabel("ms")
+    axs[2][1].hist(gw_ts, bins=HIST_BINS, color='r')
+    axs[2][1].set_title("Histogram GW timestamps (@ -60000ms)")
+    axs[2][1].set_xlabel("ms")
 
-# Only TS at 1s
-gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
-gw_ts = (gw_ts - NOMINAL_S) * 1000
-gw_ts = gw_ts[gw_ts < 11000]
-gw_ts = gw_ts[gw_ts > 5000]
+    # Only TS at 0s
+    gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+    gw_ts = (gw_ts - NOMINAL_S) * 1000
+    gw_ts = gw_ts[gw_ts < 5000]
+    gw_ts = gw_ts[gw_ts > -5000]
 
-axs[2][3].hist(gw_ts, bins=HIST_BINS, color='r')
-axs[2][3].set_title("Histogram GW timestamps (@ 10000ms)")
-axs[2][3].set_xlabel("ms")
+    axs[2][2].hist(gw_ts, bins=HIST_BINS, color='r')
+    axs[2][2].set_title("Histogram GW timestamps (@ 0ms)")
+    axs[2][2].set_xlabel("ms")
 
-# Print detailed histogram
+    # Only TS at 1s
+    gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+    gw_ts = (gw_ts - NOMINAL_S) * 1000
+    gw_ts = gw_ts[gw_ts < 11000]
+    gw_ts = gw_ts[gw_ts > 5000]
 
-# Only TS at -10s
-nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
-nw_ts = (nw_ts - NOMINAL_S) * 1000
-nw_ts = nw_ts[nw_ts < -50000]
+    axs[2][3].hist(gw_ts, bins=HIST_BINS, color='r')
+    axs[2][3].set_title("Histogram GW timestamps (@ 10000ms)")
+    axs[2][3].set_xlabel("ms")
 
-axs[3][1].hist(nw_ts, bins=HIST_BINS, color='g')
-axs[3][1].set_title("Histogram NW timestamps (@ -60000ms)")
-axs[3][1].set_xlabel("ms")
+    # Print detailed histogram
 
-# Only TS at 0s
-nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
-nw_ts = (nw_ts - NOMINAL_S) * 1000
-nw_ts = nw_ts[nw_ts < 5000]
-nw_ts = nw_ts[nw_ts > -5000]
+    # Only TS at -10s
+    nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
+    nw_ts = (nw_ts - NOMINAL_S) * 1000
+    nw_ts = nw_ts[nw_ts < -50000]
 
-axs[3][2].hist(nw_ts, bins=HIST_BINS, color='g')
-axs[3][2].set_title("Histogram NW timestamps (@ 0ms)")
-axs[3][2].set_xlabel("ms")
+    axs[3][1].hist(nw_ts, bins=HIST_BINS, color='g')
+    axs[3][1].set_title("Histogram NW timestamps (@ -60000ms)")
+    axs[3][1].set_xlabel("ms")
 
-# Only TS at 1s
-nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
-nw_ts = (nw_ts - NOMINAL_S) * 1000
-nw_ts = nw_ts[nw_ts < 11000]
-nw_ts = nw_ts[nw_ts > 5000]
+    # Only TS at 0s
+    nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
+    nw_ts = (nw_ts - NOMINAL_S) * 1000
+    nw_ts = nw_ts[nw_ts < 5000]
+    nw_ts = nw_ts[nw_ts > -5000]
 
-axs[3][3].hist(nw_ts, bins=HIST_BINS, color='g')
-axs[3][3].set_title("Histogram NW timestamps (@ 10000ms)")
-axs[3][3].set_xlabel("ms")
+    axs[3][2].hist(nw_ts, bins=HIST_BINS, color='g')
+    axs[3][2].set_title("Histogram NW timestamps (@ 0ms)")
+    axs[3][2].set_xlabel("ms")
 
-# Show calculations
-y1 = []
-for ele in msgs:
-    if not (ele["gw_timestamp_delta"] == None):
-        y1.append(ele["gw_timestamp_delta"]*1000)
+    # Only TS at 1s
+    nw_ts = np.array(list(ele["nw_timestamp_delta"] for ele in msgs), float)
+    nw_ts = (nw_ts - NOMINAL_S) * 1000
+    nw_ts = nw_ts[nw_ts < 11000]
+    nw_ts = nw_ts[nw_ts > 5000]
 
-y1 = np.array(y1)
+    axs[3][3].hist(nw_ts, bins=HIST_BINS, color='g')
+    axs[3][3].set_title("Histogram NW timestamps (@ 10000ms)")
+    axs[3][3].set_xlabel("ms")
 
-print("Packetloss: {0} (of {1} = {2:.2f}%)".format(numMsgsLost, len(msgs), (numMsgsLost/len(msgs))*100))
-print("Jitter: min: {0:.2f} ms, max: {1:.2f} ms, avg: {2:.2f} ms, mean: {3:.2f} ms".format(np.min(y1),np.max(y1),np.average(y1),np.mean(y1)))
+    # Show calculations
+    y1 = []
+    for ele in msgs:
+        if not (ele["gw_timestamp_delta"] == None):
+            y1.append(ele["gw_timestamp_delta"]*1000)
 
-plt.show()
+    y1 = np.array(y1)
+
+    print("Packetloss: \n\t{0} (of {1} = {2:.2f}%)".format(numMsgsLost, len(msgs), (numMsgsLost/len(msgs))*100))
+
+    print("Jitter:")
+    print("\tmin:  {0:.2f} ms".format(np.min(y1)))
+    print("\tmax:  {0:.2f} ms".format(np.max(y1)))
+    print("\tavg:  {0:.2f} ms".format(np.average(y1)))
+    print("\tmean: {0:.2f} ms".format(np.mean(y1)))
+
+    print("Phases:")
+    print("\tDecoded: {0}".format(numPhasesDecoded))
+    print("\tCorrect: {0}\t({1:.2f}%)".format(numPhasesDecoded-numPhasesErrors, ((numPhasesDecoded-numPhasesErrors) / numPhasesDecoded)*100))
+    print("\tErrors:  {0}\t({1:.2f}%)".format(numPhasesErrors, (numPhasesErrors / numPhasesDecoded)*100))
+
+    plt.show()
+
+if __name__ == "__main__":
+    plot()
