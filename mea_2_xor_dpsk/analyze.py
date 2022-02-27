@@ -21,8 +21,8 @@ HIST_BINS = 200
 SUBPLOT_SIZE = [4,4]
 SUPTITLE = "DPSK 10 s"
 
-def readMeasurements():
-    in_file = open(FILE, "r")
+def readMeasurements(f=FILE):
+    in_file = open(f, "r")
     data = json.loads(in_file.read())
     in_file.close()
     return data
