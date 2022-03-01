@@ -144,5 +144,24 @@ def plot():
 
     plt.show()
 
+def paperPlot():
+    res = analyze(readMeasurements())
+
+    msgs = res["msgs"]
+    numMsgsLost = res["numMsgsLost"]
+    numPhasesDecoded = res["numPhasesDecoded"]
+    numPhasesErrors = res["numPhasesErrors"]
+
+    # Only TS at 0s
+    gw_ts = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+    gw_ts = (gw_ts - NOMINAL_S) * 1000
+
+    plt.hist(gw_ts, bins=HIST_BINS, color='b')
+    plt.title("20ms: Histogram of gateway timestamps")
+    plt.xlabel("ms")
+    plt.grid(True)
+
+    plt.show()
+
 if __name__ == "__main__":
     plot()

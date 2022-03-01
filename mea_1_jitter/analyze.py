@@ -123,5 +123,41 @@ def plot():
 
     plt.show()
 
+def paperPlot():
+    res = analyze(readMeasurements())
+
+    msgs = res["msgs"]
+    numMsgsLost = res["numMsgsLost"]
+    numPhasesDecoded = res["numPhasesDecoded"]
+    numPhasesErrors = res["numPhasesErrors"]
+
+    # Print x-y diagram of delta timestamps
+
+    # Extract only msg id 500 to 700
+    a = []
+    for ele in msgs:
+        if ele["lora_msg_id"] >= 500 and ele["lora_msg_id"] <= 700:
+            a.append(ele)
+
+    plt.plot(list(ele["lora_msg_id"] for ele in a), list(ele["gw_timestamp_delta"] for ele in a), "b.-")
+    plt.title("Jitter: Delta timestamps (Zoom)")
+    plt.xlabel('msg')
+    plt.ylabel('gateway delta timestamp [s]')
+    plt.tick_params('y')
+    plt.grid(True)
+
+    plt.show()
+
+    y2 = np.array(list(ele["gw_timestamp_delta"] for ele in msgs), float)
+    y2 = ((y2) - NOMINAL_S) * 1000
+
+    plt.hist(y2, bins=HIST_BINS, color='b')
+    plt.title("Jitter: Histogram of gateway timestamps")
+    plt.xlabel("ms")
+    plt.grid(True)
+
+    plt.show()
+
+
 if __name__ == "__main__":
     plot()
