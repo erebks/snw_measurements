@@ -117,30 +117,5 @@ def plot():
 
     plt.show()
 
-def paperPlot():
-    packetloss = getPacketLosses()
-    ber = getBER()
-
-    # Print barchart of BER
-    plt.bar(range(len(ber[1])), ber[1])
-    plt.xticks(range(len(ber[1])), ber[0])
-#    plt.axes.Axes.set_xticklabels(ber[0])
-    plt.title("Phases wrongly decoded")
-    plt.ylabel("[%]")
-    plt.grid(linestyle='--', axis='y')
-
-    plt.show()
-
-    # Print barchart of packetloss
-    plt.bar(range(len(packetloss[1])), packetloss[1])
-    plt.xticks(range(len(packetloss[1])),packetloss[0])
-#  plt.axes.Axes.set_xticklabels(packetloss[0])
-    plt.title("Packetloss")
-    plt.ylabel("[%]")
-    plt.grid(linestyle='--', axis='y')
-
-    plt.show()
-
-
 if __name__ == "__main__":
     plot()
