@@ -13,10 +13,10 @@ import helper
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-FILE = "220209_xor_dpsk.json"
+FILE = "out.json"
 PRINT_MATCHES = False
-NOMINAL_S = 600
-TOLERANCE_S = 0.05
+NOMINAL_S = 300
+TOLERANCE_S = 5
 HIST_BINS = 200
 SUBPLOT_SIZE = [4,4]
 SUPTITLE = "DPSK 10 s"
@@ -179,6 +179,8 @@ def plot():
     print("\tDecoded: {0}".format(numPhasesDecoded))
     print("\tCorrect: {0}\t({1:.2f}%)".format(numPhasesDecoded-numPhasesErrors, ((numPhasesDecoded-numPhasesErrors) / numPhasesDecoded)*100))
     print("\tErrors:  {0}\t({1:.2f}%)".format(numPhasesErrors, (numPhasesErrors / numPhasesDecoded)*100))
+
+    print("Duration: {0}h".format((msgs[-1]["gw_timestamp"] - msgs[0]["gw_timestamp"])/(60*60)))
 
     plt.show()
 
