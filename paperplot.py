@@ -39,7 +39,7 @@ def plot():
     plt.bar(range(len(ber[1])), ber[1])
     plt.xticks(range(len(ber[1])), ber[0])
 #    plt.axes.Axes.set_xticklabels(ber[0])
-    plt.title("Phases wrongly decoded")
+#    plt.title("Phases wrongly decoded")
     plt.ylabel("[%]")
     plt.grid(linestyle='--', axis='y')
     plt.savefig("phase_errors.svg")
@@ -60,7 +60,7 @@ def plot():
     y2 = ((y2) - mea_1_jitter.analyze.NOMINAL_S) * 1000 - 12
 
     plt.hist(y2, bins=mea_1_jitter.analyze.HIST_BINS, color='b')
-    plt.title("Jitter: Histogram of gateway timestamps")
+#    plt.title("Jitter: Histogram of gateway timestamps")
     plt.xlabel("ms")
     plt.grid(True)
     plt.savefig("hist_jitter.svg")
@@ -68,7 +68,7 @@ def plot():
 
     # Print delta of 100ms
     plt.plot(list(ele["lora_msg_id"] for ele in mea_5["msgs"]), list(ele["gw_timestamp_delta"] for ele in mea_5["msgs"]), "b.-")
-    plt.title("100ms: Delta timestamps")
+#    plt.title("100ms: Delta timestamps")
     plt.xlabel('msg')
     plt.ylabel('gateway delta timestamp [s]')
     plt.tick_params('y')
@@ -77,7 +77,8 @@ def plot():
     plt.show()
 
     # Print hist of all
-    fig, axs = plt.subplots(2, 4, figsize=(10,5))
+#    fig, axs = plt.subplots(2, 4, figsize=(10,5))
+    fig, axs = plt.subplots(2, 4, figsize=(10,4))
     fig.tight_layout(h_pad=2)
 
     # 20ms
@@ -85,28 +86,28 @@ def plot():
     y2 = ((y2) - mea_3_xor_dpsk_20ms.analyze.NOMINAL_S) * 1000
     axs[0][0].hist(y2, bins=mea_3_xor_dpsk_20ms.analyze.HIST_BINS, color='b')
     axs[0][0].set_title("a) 20 ms")
-    axs[0][0].set_xlabel("ms", fontsize=8)
+#    axs[0][0].set_xlabel("ms", fontsize=8)
 
     # 30ms
     y2 = np.array(list(ele["gw_timestamp_delta"] for ele in mea_6["msgs"]), float)
     y2 = ((y2) - mea_6_xor_dpsk_30ms.analyze.NOMINAL_S) * 1000
     axs[0][1].hist(y2, bins=mea_6_xor_dpsk_30ms.analyze.HIST_BINS, color='b')
     axs[0][1].set_title("b) 30 ms")
-    axs[0][1].set_xlabel("ms", fontsize=8)
+#    axs[0][1].set_xlabel("ms", fontsize=8)
 
     # 40ms
     y2 = np.array(list(ele["gw_timestamp_delta"] for ele in mea_7["msgs"]), float)
     y2 = ((y2) - mea_7_xor_dpsk_40ms.analyze.NOMINAL_S) * 1000
     axs[0][2].hist(y2, bins=mea_7_xor_dpsk_40ms.analyze.HIST_BINS, color='b')
     axs[0][2].set_title("c) 40 ms")
-    axs[0][2].set_xlabel("ms", fontsize=8)
+#    axs[0][2].set_xlabel("ms", fontsize=8)
 
     # 50ms
     y2 = np.array(list(ele["gw_timestamp_delta"] for ele in mea_4["msgs"]), float)
     y2 = ((y2) - mea_4_xor_dpsk_50ms.analyze.NOMINAL_S) * 1000
     axs[0][3].hist(y2, bins=mea_4_xor_dpsk_50ms.analyze.HIST_BINS, color='b')
     axs[0][3].set_title("d) 50 ms")
-    axs[0][3].set_xlabel("ms", fontsize=8)
+#    axs[0][3].set_xlabel("ms", fontsize=8)
 
     # 60ms
     y2 = np.array(list(ele["gw_timestamp_delta"] for ele in mea_8["msgs"]), float)
