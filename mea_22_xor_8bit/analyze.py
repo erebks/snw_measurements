@@ -16,7 +16,9 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 FILE = "8bit.json"
 PRINT_MATCHES = False
 NOMINAL_S = 300
-TOLERANCE_S = 0.05
+TOLERANCE_S = 0.025
+PHASE_DELTA_S = 0.050
+BITS = 8
 HIST_BINS = 200
 SUBPLOT_SIZE = [4,3]
 SUPTITLE = "8 bit encoding"
@@ -28,7 +30,7 @@ def readMeasurements(f=FILE):
     return data
 
 def analyze(measurements):
-    return helper.readMessages(measurements, NOMINAL_S, TOLERANCE_S, PRINT_MATCHES)
+    return helper.readMessages_nBit(measurements, NOMINAL_S, TOLERANCE_S, PHASE_DELTA_S, BITS, PRINT_MATCHES)
 
 def plot():
 
